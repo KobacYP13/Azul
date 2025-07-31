@@ -1,0 +1,193 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Te amo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: linear-gradient(180deg, #0a0000 0%, #300000 100%);
+      cursor: none;
+    }
+    canvas {
+      display: block;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 0;
+      background: transparent;
+    }
+    #cursor {
+      position: fixed;
+      width: 24px;
+      height: 24px;
+      border: 2px solid rgba(255, 50, 80, 0.6);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 10;
+      transition: transform 0.15s ease, background-color 0.3s ease;
+      background-color: rgba(255, 50, 80, 0.15);
+      mix-blend-mode: screen;
+      box-shadow: 0 0 8px rgba(255, 50, 80, 0.6);
+    }
+    #cursor:active {
+      background-color: rgba(255, 50, 80, 0.3);
+      transform: scale(0.75);
+      box-shadow: 0 0 15px rgba(255, 50, 80, 0.9);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <div id="cursor"></div>
+
+  <audio id="audio-control" preload="auto">
+    <source src="https://www.dropbox.com/scl/fi/whes8yyst9xbbqe13icru/massive-attack-angel_nujjWccD.mp3?rlkey=24g1bgj6r2uslm3c5n9prbvvc&st=cbljows3&raw=1" type="audio/mp3" />
+  </audio>
+
+  <script>
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const audio = document.getElementById('audio-control');
+      function playAudio() {
+        audio.volume = 0.7;
+        audio.play().catch(err => console.log("Error al reproducir audio:", err));
+      }
+      document.body.addEventListener(isTouchDevice ? 'touchstart' : 'click', playAudio, { once: true });
+    });
+
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const cursor = document.getElementById('cursor');
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    if (isTouchDevice) {
+      cursor.style.display = 'none';
+    } else {
+      document.addEventListener('mousemove', e => {
+        cursor.style.left = `${e.clientX - 12}px`;
+        cursor.style.top = `${e.clientY - 12}px`;
+        cursor.style.transform = `scale(${1 + Math.sin(Date.now() / 400) * 0.15})`;
+      });
+      document.addEventListener('mousedown', () => {
+        cursor.style.transform = 'scale(0.7)';
+        cursor.style.backgroundColor = 'rgba(255, 50, 80, 0.3)';
+        cursor.style.boxShadow = '0 0 15px rgba(255, 50, 80, 0.9)';
+      });
+      document.addEventListener('mouseup', () => {
+        cursor.style.transform = 'scale(1)';
+        cursor.style.backgroundColor = 'rgba(255, 50, 80, 0.15)';
+        cursor.style.boxShadow = '0 0 8px rgba(255, 50, 80, 0.6)';
+      });
+    }
+
+    const texts = [
+      { text: "I love you", color: "#ff5370", glow: "rgba(255, 83, 112, 0.9)", speed: 0.25 },
+      { text: "愛してる", color: "#55fff6", glow: "rgba(85, 255, 246, 0.95)", speed: 0.35 },
+      { text: "Я люблю тебя", color: "#fffafa", glow: "rgba(255, 250, 250, 0.8)", speed: 0.2 },
+      { text: "Ich liebe dich", color: "#f7d959", glow: "rgba(247, 217, 89, 0.8)", speed: 0.3 },
+      { text: "Je t’aime", color: "#55ff9e", glow: "rgba(85, 255, 158, 0.85)", speed: 0.22 }
+    ];
+
+    const particleText = "Azul";
+    const particleColor = "#ff6fa3";
+    const particleGlow = "rgba(255, 111, 163, 0.95)";
+    const baseFontSize = isTouchDevice ? 28 : 48;
+    let columns = Math.floor(canvas.width / (baseFontSize * 2));
+    let drops = new Array(columns).fill(1);
+
+    ctx.font = `bold ${baseFontSize}px 'Dancing Script', cursive`;
+    ctx.textBaseline = "top";
+
+    function drawMatrix() {
+      ctx.fillStyle = "rgba(10, 0, 0, 0.12)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < drops.length; i++) {
+        const x = i * baseFontSize * 2;
+        const y = drops[i] * baseFontSize;
+        const info = texts[i % texts.length];
+        const oscillation = Math.sin(Date.now() / 1000 + i) * 0.15 + 1;
+
+        ctx.shadowColor = info.glow;
+        ctx.shadowBlur = 20;
+        ctx.fillStyle = info.color;
+        ctx.font = `bold ${baseFontSize * oscillation}px 'Dancing Script', cursive`;
+        ctx.fillText(info.text, x, y);
+
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
+        ctx.lineWidth = 2;
+        ctx.strokeText(info.text, x, y);
+        ctx.fillText(info.text, x, y);
+
+        if (y > canvas.height && Math.random() > 0.99) {
+          drops[i] = 0;
+        }
+        drops[i] += info.speed;
+      }
+    }
+
+    let particles = [];
+    const handleInteraction = (e) => {
+      const x = isTouchDevice ? e.touches[0].clientX : e.clientX;
+      const y = isTouchDevice ? e.touches[0].clientY : e.clientY;
+
+      for (let i = 0; i < 15; i++) {
+        particles.push({
+          x: x,
+          y: y,
+          vx: (Math.random() - 0.5) * 7,
+          vy: (Math.random() - 0.5) * 7,
+          alpha: 1,
+          size: baseFontSize + Math.random() * 25,
+          color: particleColor
+        });
+      }
+    };
+
+    canvas.addEventListener(isTouchDevice ? "touchstart" : "click", handleInteraction);
+
+    function drawParticles() {
+      particles.forEach((p, index) => {
+        ctx.globalAlpha = p.alpha;
+        ctx.font = `bold ${p.size}px 'Dancing Script', cursive`;
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = particleGlow;
+        ctx.shadowBlur = 20;
+        ctx.fillText(particleText, p.x, p.y);
+        ctx.shadowBlur = 0;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.015;
+        if (p.alpha <= 0) {
+          particles.splice(index, 1);
+        }
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    function animate() {
+      drawMatrix();
+      drawParticles();
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+
+    window.addEventListener("resize", () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      columns = Math.floor(canvas.width / (baseFontSize * 2));
+      drops.length = columns;
+      drops.fill(1);
+    });
+  </script>
+</body>
+</html>
